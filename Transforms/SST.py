@@ -206,7 +206,7 @@ def plot_sst(f, t, data, db_range=50, ax=None, title='', cmap='turbo'):
     vmax = db.max()
     vmin = vmax - db_range
 
-    extent = [t[0], t[-1], f[0], f[-1]]
+    extent = [t[0], t[-1], f[-1], f[0]]
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(12, 5))
@@ -253,12 +253,12 @@ if __name__ == '__main__':
     f, t_out, TFR, RTFR, RTFR_hist = SST(x, fs=fs, nperseg=33, nfft=1024, hop=1, n_iters=20, alpha=0.5)
 
     fig, axes = plt.subplots(2, 3, figsize=(14, 12))
-    plot_sst(t_out, f, TFR.T,  db_range=20, ax=axes[0, 0], title='STFT')
+    plot_sst(t_out, f, TFR.T,  db_range=60, ax=axes[0, 0], title='STFT')
     for i in range(5):
         row = (i+1) // 3
         col = (i+1) % 3
         
-        plot_sst(t_out, f, RTFR_hist[i].T, db_range=20, ax=axes[row, col], title=f'SST iteration: {i+1}')
+        plot_sst(t_out, f, RTFR_hist[i].T, db_range=40, ax=axes[row, col], title=f'SST iteration: {i+1}')
     plt.tight_layout()
     plt.savefig('Test_Results/sst_demo.png', dpi=150)
     
