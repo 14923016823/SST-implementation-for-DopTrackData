@@ -24,7 +24,7 @@ def plot_tf_panels(res, savepath=None, title_tag="", db_floor=-60.0):
         P = _db(np.abs(M) ** 2)
         vmax = P.max()
         im = ax.imshow(P, origin="lower", aspect="auto", extent=extent,
-                       vmin=vmax + db_floor, vmax=vmax, cmap="turbo")
+                       vmin=vmax + db_floor, vmax=vmax, cmap="magma")
         ax.set_ylabel("Frequency (kHz)")
         ax.set_title(name, loc="left", fontsize=11)
         fig.colorbar(im, ax=ax, label="Power (dB)", pad=0.01)
@@ -34,6 +34,59 @@ def plot_tf_panels(res, savepath=None, title_tag="", db_floor=-60.0):
     if savepath:
         plt.savefig(savepath, dpi=140)
         print(f"[plot] TF panels -> {savepath}")
+    plt.close(fig)
+    return fig
+
+
+def plot_comparison(res, savepath=None, title_tag="", db_floor=-60.0):
+    """Two-panel comparison: STFT spectrogram with the tracked ridge overlaid,
+    and C/N0 / peak power / band power / percentile-strength curves for STFT,
+    SST and MSST on a shared time axis.
+    """
+    t, f = res["t"], res["freqs"]
+    fig, axes = plt.subplots(5, 1, figsize=(12, 14), sharex=True,
+                             gridspec_kw={"height_ratios": [2, 1, 1, 1, 1]})
+    tag = f" — {title_tag}" if title_tag else ""
+    fig.suptitle(f"Strength-method comparison{tag}", fontsize=13, y=0.995)
+
+    # Panel 1: STFT spectrogram with ridge overlay.
+    ax = axes[0]
+    P = _db(np.abs(res["stft"]) ** 2)
+    vmax = P.max()
+    extent = [t[0], t[-1], f[0] / 1e3, f[-1] / 1e3]
+    im = ax.imshow(P, origin="lower", aspect="auto", extent=extent,
+                   vmin=vmax + db_floor, vmax=vmax, cmap="magma")
+    ax.plot(t, res["ridge_hz"] / 1e3, "c-", lw=1.0, alpha=0.85,
+            label="tracked ridge")
+    ax.set_ylabel("Frequency (kHz)")
+    ax.set_title("STFT with carrier ridge", loc="left", fontsize=11)
+    ax.legend(loc="upper right", fontsize=9)
+    fig.colorbar(im, ax=ax, label="Power (dB)", pad=0.01)
+
+    # Panels 2-5: each metric, all three transforms.
+    metric_titles = [
+        ("cn0_dbhz", "C/N\u2080 (dB-Hz) — standard satellite-link metric"),
+        ("peak_db",  "Carrier-bin power (dB, arbitrary)"),
+        ("snr_db",   "In-band / out-of-band SNR (dB)"),
+        ("pc_db",    "Percentile-method strength (dB)"),
+    ]
+    colours = {"stft": "steelblue", "sst": "tomato", "msst": "seagreen"}
+
+    for ax, (key, title) in zip(axes[1:], metric_titles):
+        for tf_name in ("stft", "sst", "msst"):
+            ax.plot(t, res["metrics"][tf_name][key],
+                    lw=1.0, color=colours[tf_name],
+                    label=tf_name.upper(), alpha=0.85)
+        ax.set_ylabel(key)
+        ax.set_title(title, loc="left", fontsize=10)
+        ax.grid(True, alpha=0.3)
+        ax.legend(fontsize=9, ncol=3)
+    axes[-1].set_xlabel("Time (s)")
+
+    plt.tight_layout()
+    if savepath:
+        plt.savefig(savepath, dpi=140)
+        print(f"[plot] comparison -> {savepath}")
     plt.close(fig)
     return fig
 
